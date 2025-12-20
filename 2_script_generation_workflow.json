@@ -1,0 +1,279 @@
+{
+  "name": "UGC Script Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "webhook",
+        "path": "generate-scripts",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [40, 400],
+      "webhookId": "script-generator-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.researchDocument }}",
+              "operation": "isNotEmpty"
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{ $json.scriptCount || 3 }}",
+              "operation": "largerEqual",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "validate-inputs",
+      "name": "Validate Inputs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "research",
+              "name": "researchDocument",
+              "value": "={{ $json.researchDocument }}",
+              "type": "string"
+            },
+            {
+              "id": "script-count",
+              "name": "scriptCount",
+              "value": "={{ $json.scriptCount || 3 }}",
+              "type": "number"
+            },
+            {
+              "id": "script-length",
+              "name": "scriptLength",
+              "value": "={{ $json.scriptLength || '60s' }}",
+              "type": "string"
+            },
+            {
+              "id": "angles",
+              "name": "selectedAngles",
+              "value": "={{ $json.selectedAngles || 'all' }}",
+              "type": "string"
+            },
+            {
+              "id": "word-count",
+              "name": "targetWordCount",
+              "value": "={{ $json.scriptLength === '30s' ? 75 : $json.scriptLength === '60s' ? 150 : $json.scriptLength === '90s' ? 225 : 300 }}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "prepare-config",
+      "name": "Prepare Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [480, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create array of items for loop\nconst scriptCount = $input.first().json.scriptCount;\nconst items = [];\n\nfor (let i = 1; i <= scriptCount; i++) {\n  items.push({\n    scriptNumber: i,\n    researchDocument: $input.first().json.researchDocument,\n    scriptLength: $input.first().json.scriptLength,\n    targetWordCount: $input.first().json.targetWordCount,\n    selectedAngles: $input.first().json.selectedAngles\n  });\n}\n\nreturn items;"
+      },
+      "id": "create-loop-items",
+      "name": "Create Loop Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert UGC (User Generated Content) script writer for Meta ads. Your scripts are natural, conversational, and highly converting.\n\nBased on the following product research, create ONE unique UGC script.\n\n## PRODUCT RESEARCH:\n{{ $json.researchDocument }}\n\n## SCRIPT REQUIREMENTS:\n- Script Number: {{ $json.scriptNumber }} of {{ $('Prepare Configuration').item.json.scriptCount }}\n- Target Length: {{ $json.scriptLength }} (approximately {{ $json.targetWordCount }} words)\n- Selected Angles: {{ $json.selectedAngles }}\n\n## SCRIPT STRUCTURE:\nCreate a script with the following sections:\n\n**HOOK (First 3 seconds - CRITICAL):**\n- Pattern interrupt or bold statement\n- Must stop the scroll immediately\n- Can be a question, shocking stat, relatable problem, or bold claim\n\n**PROBLEM/AGITATION (5-10 seconds):**\n- Describe the pain point vividly\n- Make viewer feel understood\n- Build tension around the problem\n\n**SOLUTION INTRODUCTION (5-10 seconds):**\n- Introduce the product naturally\n- Transition smoothly from problem to solution\n- Personal discovery moment\n\n**FEATURES → BENEFITS (15-30 seconds):**\n- Highlight 2-4 key features\n- Translate each feature into tangible benefit\n- Use specific examples and details\n- Personal experience/transformation\n\n**SOCIAL PROOF/CREDIBILITY (5-10 seconds):**\n- Add trust elements\n- Could be personal results, others' experiences, or expert validation\n\n**CALL TO ACTION (Final 5 seconds):**\n- Clear, specific action\n- Create urgency if appropriate\n- Make it easy to act\n\n## IMPORTANT GUIDELINES:\n1. Write in FIRST PERSON - this is UGC, someone talking to camera\n2. Use natural, conversational language (contractions, casual phrases)\n3. Each script should use a DIFFERENT ANGLE from the research\n4. Avoid hype - be authentic and believable\n5. Include specific details and numbers when possible\n6. The script should feel like a friend recommending something, not an ad\n7. Stay within the word count target ({{ $json.targetWordCount }} words ± 20)\n\n## OUTPUT FORMAT:\nProvide the script in this exact format:\n\n---\n**SCRIPT {{ $json.scriptNumber }}: [Give it a descriptive title based on the angle]**\n\n**Angle Used:** [State the specific messaging angle]\n\n**Script:**\n[Write the full script here with clear paragraph breaks for different sections]\n\n**Visual Suggestions:**\n- [Suggest 3-5 specific visual moments/b-roll that would enhance this script]\n\n**Key Talking Points:**\n- [Bullet point the main messages]\n\n**Estimated Duration:** {{ $json.scriptLength }}\n**Word Count:** [Actual word count]\n---\n\nCreate a unique, compelling script that would perform well on Meta platforms!",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.9,
+          "maxTokens": 2000
+        }
+      },
+      "id": "generate-script",
+      "name": "Generate UGC Script",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [920, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "script-number",
+              "name": "scriptNumber",
+              "value": "={{ $('Create Loop Items').item.json.scriptNumber }}",
+              "type": "number"
+            },
+            {
+              "id": "script-content",
+              "name": "scriptContent",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "script-length",
+              "name": "scriptLength",
+              "value": "={{ $('Create Loop Items').item.json.scriptLength }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "generatedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "format-script",
+      "name": "Format Script Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1140, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all generated scripts\nconst allScripts = $input.all();\n\nlet compiledDocument = `# UGC SCRIPTS COMPILATION\\n\\n`;\ncompiledDocument += `**Generated:** ${new Date().toISOString()}\\n`;\ncompiledDocument += `**Total Scripts:** ${allScripts.length}\\n`;\ncompiledDocument += `**Script Length:** ${allScripts[0].json.scriptLength}\\n\\n`;\ncompiledDocument += `---\\n\\n`;\n\n// Add each script\nallScripts.forEach(item => {\n  compiledDocument += item.json.scriptContent + '\\n\\n';\n  compiledDocument += '═'.repeat(80) + '\\n\\n';\n});\n\nreturn {\n  compiledScripts: compiledDocument,\n  scriptCount: allScripts.length,\n  scriptLength: allScripts[0].json.scriptLength,\n  scripts: allScripts.map(item => ({\n    number: item.json.scriptNumber,\n    content: item.json.scriptContent,\n    generatedAt: item.json.generatedAt\n  }))\n};"
+      },
+      "id": "aggregate-scripts",
+      "name": "Aggregate All Scripts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 400]
+    },
+    {
+      "parameters": {
+        "mode": "jsonToBinary",
+        "options": {
+          "fileName": "=UGC_Scripts_{{ $json.scriptLength }}_{{ $now.toFormat('yyyy-MM-dd_HH-mm') }}.txt",
+          "mimeType": "text/plain"
+        }
+      },
+      "id": "convert-to-file",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [1580, 400]
+    },
+    {
+      "parameters": {
+        "content": "## UGC Script Generator Workflow\n\n**Input Required:**\n```json\n{\n  \"researchDocument\": \"[Full research doc]\",\n  \"scriptCount\": 5,\n  \"scriptLength\": \"60s\",\n  \"selectedAngles\": \"problem-solution, social-proof\"\n}\n```\n\n**Parameters:**\n- `scriptCount`: Number of scripts (default: 3)\n- `scriptLength`: \"30s\" | \"60s\" | \"90s\" | \"120s\" (default: \"60s\")\n- `selectedAngles`: Comma-separated or \"all\" (default: \"all\")\n\n**Word Count Mapping:**\n- 30s ≈ 75 words\n- 60s ≈ 150 words  \n- 90s ≈ 225 words\n- 120s ≈ 300 words\n\n**Output:**\n- Compiled document with all scripts\n- Individual script objects\n- File download ready",
+        "height": 440,
+        "width": 320
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 560]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Inputs": {
+      "main": [
+        [
+          {
+            "node": "Prepare Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Configuration": {
+      "main": [
+        [
+          {
+            "node": "Create Loop Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Loop Items": {
+      "main": [
+        [
+          {
+            "node": "Generate UGC Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate UGC Script": {
+      "main": [
+        [
+          {
+            "node": "Format Script Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Script Output": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Scripts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Scripts": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-20T12:00:00.000Z",
+  "versionId": "1"
+}

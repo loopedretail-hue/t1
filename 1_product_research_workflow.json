@@ -1,0 +1,257 @@
+{
+  "name": "Product Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.productUrl }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "id": "fetch-product-page",
+      "name": "Fetch Product Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "product-url",
+              "name": "productUrl",
+              "value": "={{ $json.productUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "html-content",
+              "name": "htmlContent",
+              "value": "={{ $json.body }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-data",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text content from HTML\nconst html = $input.first().json.htmlContent;\nconst url = $input.first().json.productUrl;\n\n// Remove script and style tags\nlet cleanText = html.replace(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi, '');\ncleanText = cleanText.replace(/<style[^>]*>([\\s\\S]*?)<\\/style>/gi, '');\n\n// Remove HTML tags\ncleanText = cleanText.replace(/<[^>]+>/g, ' ');\n\n// Clean up whitespace\ncleanText = cleanText.replace(/\\s+/g, ' ').trim();\n\n// Extract domain name for context\nconst domain = new URL(url).hostname.replace('www.', '');\n\nreturn {\n  productUrl: url,\n  domain: domain,\n  rawText: cleanText.substring(0, 50000) // Limit to first 50k chars\n};"
+      },
+      "id": "extract-text",
+      "name": "Extract Text from HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert product researcher. Analyze the following product page and create a comprehensive research document.\n\nProduct URL: {{ $json.productUrl }}\nDomain: {{ $json.domain }}\n\nProduct Page Content:\n{{ $json.rawText }}\n\nCreate a detailed research document with the following sections:\n\n# PRODUCT RESEARCH DOCUMENT\n\n## 1. PRODUCT OVERVIEW\n- Product Name\n- Brand\n- Category\n- Price Point\n- Primary Use Case\n\n## 2. KEY FEATURES & BENEFITS\n- List all major features\n- Translate features into customer benefits\n- Unique selling propositions (USPs)\n\n## 3. TARGET AUDIENCE\n- Primary demographics\n- Pain points this product solves\n- Customer motivations for purchase\n- Psychographic profile\n\n## 4. PRODUCT DIFFERENTIATORS\n- What makes this product unique?\n- Competitive advantages\n- Innovation points\n\n## 5. EMOTIONAL TRIGGERS\n- What emotions does this product evoke?\n- Aspirational elements\n- Fear/pain points it addresses\n\n## 6. PROOF ELEMENTS\n- Social proof mentioned\n- Scientific backing\n- Awards/certifications\n- Guarantees/warranties\n\n## 7. CUSTOMER JOURNEY INSIGHTS\n- Awareness stage considerations\n- Consideration stage factors\n- Decision stage triggers\n\n## 8. MESSAGING ANGLES (For Ads)\nProvide 10-15 different messaging angles that could work for ads:\n- Problem/Solution angles\n- Benefit-focused angles\n- Lifestyle/Aspiration angles\n- Social proof angles\n- Limited time/Scarcity angles\n- Educational angles\n- Comparison angles\n\n## 9. KEY TALKING POINTS\nBullet points that would work well in UGC scripts:\n- Feature highlights\n- Before/after scenarios\n- Personal transformation stories\n- Quick wins/results\n\n## 10. LANGUAGE & TONE\n- Brand voice characteristics\n- Key phrases/terminology used\n- Tone recommendations for ads\n\nBe thorough, specific, and actionable. This research will be used to create high-converting Meta ad scripts.",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 4000
+        }
+      },
+      "id": "ai-research",
+      "name": "AI Product Research",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1140, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "research-doc",
+              "name": "researchDocument",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "product-url",
+              "name": "productUrl",
+              "value": "={{ $('Extract Text from HTML').item.json.productUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "createdAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "format-output",
+      "name": "Format Research Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1360, 300]
+    },
+    {
+      "parameters": {
+        "mode": "jsonToBinary",
+        "options": {
+          "fileName": "={{ $json.productUrl.replace(/https?:\\/\\//, '').replace(/[^a-z0-9]/gi, '_') }}_research.txt",
+          "mimeType": "text/plain"
+        }
+      },
+      "id": "convert-to-file",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [1580, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.productUrl }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-url",
+      "name": "Validate URL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "content": "## Product Research Workflow\n\n**Input Required:**\n- `productUrl`: The URL of the product page to research\n\n**Process:**\n1. Validates the product URL\n2. Fetches the product page HTML\n3. Extracts and cleans text content\n4. Uses AI to create comprehensive research document\n5. Outputs formatted research document\n\n**Output:**\n- `researchDocument`: Detailed product research\n- `productUrl`: Original product URL\n- `createdAt`: Timestamp of research creation\n\n**Usage:**\nTrigger this workflow with:\n```json\n{\n  \"productUrl\": \"https://example.com/product\"\n}\n```",
+        "height": 400,
+        "width": 300
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 460]
+    },
+    {
+      "parameters": {
+        "mode": "webhook",
+        "path": "product-research",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [40, 300],
+      "webhookId": "product-research-webhook"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate URL": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Product Page": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Product Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Product Research": {
+      "main": [
+        [
+          {
+            "node": "Format Research Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Research Output": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-20T12:00:00.000Z",
+  "versionId": "1"
+}

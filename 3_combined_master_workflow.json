@@ -1,0 +1,358 @@
+{
+  "name": "Product Research + Script Generation (Master)",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "webhook",
+        "path": "product-to-scripts",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [40, 500],
+      "webhookId": "master-workflow-webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "product-url",
+              "name": "productUrl",
+              "value": "={{ $json.productUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "script-count",
+              "name": "scriptCount",
+              "value": "={{ $json.scriptCount || 3 }}",
+              "type": "number"
+            },
+            {
+              "id": "script-length",
+              "name": "scriptLength",
+              "value": "={{ $json.scriptLength || '60s' }}",
+              "type": "string"
+            },
+            {
+              "id": "angles",
+              "name": "selectedAngles",
+              "value": "={{ $json.selectedAngles || 'all' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "capture-inputs",
+      "name": "Capture All Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [260, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.productUrl }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          }
+        }
+      },
+      "id": "fetch-product-page",
+      "name": "Fetch Product Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [480, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text content from HTML\nconst html = $input.first().json.body || $input.first().json.data;\nconst url = $('Capture All Inputs').item.json.productUrl;\n\n// Remove script and style tags\nlet cleanText = html.replace(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi, '');\ncleanText = cleanText.replace(/<style[^>]*>([\\s\\S]*?)<\\/style>/gi, '');\n\n// Remove HTML tags\ncleanText = cleanText.replace(/<[^>]+>/g, ' ');\n\n// Clean up whitespace\ncleanText = cleanText.replace(/\\s+/g, ' ').trim();\n\n// Extract domain name for context\nconst domain = new URL(url).hostname.replace('www.', '');\n\nreturn {\n  productUrl: url,\n  domain: domain,\n  rawText: cleanText.substring(0, 50000), // Limit to first 50k chars\n  scriptCount: $('Capture All Inputs').item.json.scriptCount,\n  scriptLength: $('Capture All Inputs').item.json.scriptLength,\n  selectedAngles: $('Capture All Inputs').item.json.selectedAngles\n};"
+      },
+      "id": "extract-text",
+      "name": "Extract Text from HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert product researcher. Analyze the following product page and create a comprehensive research document.\n\nProduct URL: {{ $json.productUrl }}\nDomain: {{ $json.domain }}\n\nProduct Page Content:\n{{ $json.rawText }}\n\nCreate a detailed research document with the following sections:\n\n# PRODUCT RESEARCH DOCUMENT\n\n## 1. PRODUCT OVERVIEW\n- Product Name\n- Brand\n- Category\n- Price Point\n- Primary Use Case\n\n## 2. KEY FEATURES & BENEFITS\n- List all major features\n- Translate features into customer benefits\n- Unique selling propositions (USPs)\n\n## 3. TARGET AUDIENCE\n- Primary demographics\n- Pain points this product solves\n- Customer motivations for purchase\n- Psychographic profile\n\n## 4. PRODUCT DIFFERENTIATORS\n- What makes this product unique?\n- Competitive advantages\n- Innovation points\n\n## 5. EMOTIONAL TRIGGERS\n- What emotions does this product evoke?\n- Aspirational elements\n- Fear/pain points it addresses\n\n## 6. PROOF ELEMENTS\n- Social proof mentioned\n- Scientific backing\n- Awards/certifications\n- Guarantees/warranties\n\n## 7. CUSTOMER JOURNEY INSIGHTS\n- Awareness stage considerations\n- Consideration stage factors\n- Decision stage triggers\n\n## 8. MESSAGING ANGLES (For Ads)\nProvide 10-15 different messaging angles that could work for ads:\n- Problem/Solution angles\n- Benefit-focused angles\n- Lifestyle/Aspiration angles\n- Social proof angles\n- Limited time/Scarcity angles\n- Educational angles\n- Comparison angles\n\n## 9. KEY TALKING POINTS\nBullet points that would work well in UGC scripts:\n- Feature highlights\n- Before/after scenarios\n- Personal transformation stories\n- Quick wins/results\n\n## 10. LANGUAGE & TONE\n- Brand voice characteristics\n- Key phrases/terminology used\n- Tone recommendations for ads\n\nBe thorough, specific, and actionable. This research will be used to create high-converting Meta ad scripts.",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 4000
+        }
+      },
+      "id": "ai-research",
+      "name": "AI Product Research",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [920, 500]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "research-doc",
+              "name": "researchDocument",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "script-count",
+              "name": "scriptCount",
+              "value": "={{ $('Extract Text from HTML').item.json.scriptCount }}",
+              "type": "number"
+            },
+            {
+              "id": "script-length",
+              "name": "scriptLength",
+              "value": "={{ $('Extract Text from HTML').item.json.scriptLength }}",
+              "type": "string"
+            },
+            {
+              "id": "angles",
+              "name": "selectedAngles",
+              "value": "={{ $('Extract Text from HTML').item.json.selectedAngles }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-for-scripts",
+      "name": "Prepare for Script Generation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1140, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create array of items for script generation loop\nconst scriptCount = $input.first().json.scriptCount;\nconst items = [];\n\nconst wordCountMap = {\n  '30s': 75,\n  '60s': 150,\n  '90s': 225,\n  '120s': 300\n};\n\nconst targetWordCount = wordCountMap[$input.first().json.scriptLength] || 150;\n\nfor (let i = 1; i <= scriptCount; i++) {\n  items.push({\n    scriptNumber: i,\n    totalScripts: scriptCount,\n    researchDocument: $input.first().json.researchDocument,\n    scriptLength: $input.first().json.scriptLength,\n    targetWordCount: targetWordCount,\n    selectedAngles: $input.first().json.selectedAngles\n  });\n}\n\nreturn items;"
+      },
+      "id": "create-script-loop",
+      "name": "Create Script Loop Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 500]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert UGC (User Generated Content) script writer for Meta ads. Your scripts are natural, conversational, and highly converting.\n\nBased on the following product research, create ONE unique UGC script.\n\n## PRODUCT RESEARCH:\n{{ $json.researchDocument }}\n\n## SCRIPT REQUIREMENTS:\n- Script Number: {{ $json.scriptNumber }} of {{ $json.totalScripts }}\n- Target Length: {{ $json.scriptLength }} (approximately {{ $json.targetWordCount }} words)\n- Selected Angles: {{ $json.selectedAngles }}\n- **IMPORTANT:** Each script MUST use a DIFFERENT angle. This is script {{ $json.scriptNumber }}, so choose a unique approach.\n\n## SCRIPT STRUCTURE:\nCreate a script with the following sections:\n\n**HOOK (First 3 seconds - CRITICAL):**\n- Pattern interrupt or bold statement\n- Must stop the scroll immediately\n- Can be a question, shocking stat, relatable problem, or bold claim\n\n**PROBLEM/AGITATION (5-10 seconds):**\n- Describe the pain point vividly\n- Make viewer feel understood\n- Build tension around the problem\n\n**SOLUTION INTRODUCTION (5-10 seconds):**\n- Introduce the product naturally\n- Transition smoothly from problem to solution\n- Personal discovery moment\n\n**FEATURES → BENEFITS (15-30 seconds):**\n- Highlight 2-4 key features\n- Translate each feature into tangible benefit\n- Use specific examples and details\n- Personal experience/transformation\n\n**SOCIAL PROOF/CREDIBILITY (5-10 seconds):**\n- Add trust elements\n- Could be personal results, others' experiences, or expert validation\n\n**CALL TO ACTION (Final 5 seconds):**\n- Clear, specific action\n- Create urgency if appropriate\n- Make it easy to act\n\n## IMPORTANT GUIDELINES:\n1. Write in FIRST PERSON - this is UGC, someone talking to camera\n2. Use natural, conversational language (contractions, casual phrases)\n3. Each script should use a DIFFERENT ANGLE from the research\n4. Avoid hype - be authentic and believable\n5. Include specific details and numbers when possible\n6. The script should feel like a friend recommending something, not an ad\n7. Stay within the word count target ({{ $json.targetWordCount }} words ± 20)\n\n## OUTPUT FORMAT:\nProvide the script in this exact format:\n\n---\n**SCRIPT {{ $json.scriptNumber }}: [Give it a descriptive title based on the angle]**\n\n**Angle Used:** [State the specific messaging angle]\n\n**Script:**\n[Write the full script here with clear paragraph breaks for different sections]\n\n**Visual Suggestions:**\n- [Suggest 3-5 specific visual moments/b-roll that would enhance this script]\n\n**Key Talking Points:**\n- [Bullet point the main messages]\n\n**Estimated Duration:** {{ $json.scriptLength }}\n**Word Count:** [Actual word count]\n---\n\nCreate a unique, compelling script that would perform well on Meta platforms!",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.9,
+          "maxTokens": 2000
+        }
+      },
+      "id": "generate-script",
+      "name": "Generate UGC Script",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1580, 500]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "script-number",
+              "name": "scriptNumber",
+              "value": "={{ $('Create Script Loop Items').item.json.scriptNumber }}",
+              "type": "number"
+            },
+            {
+              "id": "script-content",
+              "name": "scriptContent",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "format-script",
+      "name": "Format Each Script",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1800, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all outputs\nconst allScripts = $input.all();\nconst researchDoc = $('Prepare for Script Generation').item.json.researchDocument;\nconst productUrl = $('Capture All Inputs').item.json.productUrl;\nconst scriptLength = $('Capture All Inputs').item.json.scriptLength;\n\nlet finalDocument = `# PRODUCT RESEARCH & UGC SCRIPTS\\n\\n`;\nfinalDocument += `**Product URL:** ${productUrl}\\n`;\nfinalDocument += `**Generated:** ${new Date().toISOString()}\\n`;\nfinalDocument += `**Script Count:** ${allScripts.length}\\n`;\nfinalDocument += `**Script Length:** ${scriptLength}\\n\\n`;\nfinalDocument += `${'='.repeat(80)}\\n\\n`;\n\n// Add research document\nfinalDocument += `# PRODUCT RESEARCH DOCUMENT\\n\\n`;\nfinalDocument += researchDoc + '\\n\\n';\nfinalDocument += `${'='.repeat(80)}\\n\\n`;\n\n// Add all scripts\nfinalDocument += `# UGC SCRIPTS\\n\\n`;\nallScripts.forEach((item, index) => {\n  finalDocument += item.json.scriptContent + '\\n\\n';\n  if (index < allScripts.length - 1) {\n    finalDocument += `${'─'.repeat(80)}\\n\\n`;\n  }\n});\n\nreturn {\n  finalDocument: finalDocument,\n  researchDocument: researchDoc,\n  productUrl: productUrl,\n  scriptCount: allScripts.length,\n  scriptLength: scriptLength,\n  scripts: allScripts.map(item => ({\n    number: item.json.scriptNumber,\n    content: item.json.scriptContent\n  }))\n};"
+      },
+      "id": "aggregate-all",
+      "name": "Aggregate Everything",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2020, 500]
+    },
+    {
+      "parameters": {
+        "mode": "jsonToBinary",
+        "options": {
+          "fileName": "=Product_Research_Scripts_{{ $json.scriptLength }}_{{ $now.toFormat('yyyy-MM-dd_HH-mm') }}.txt",
+          "mimeType": "text/plain"
+        }
+      },
+      "id": "create-file",
+      "name": "Create Final Document",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [2240, 500]
+    },
+    {
+      "parameters": {
+        "content": "## Master Workflow: Product URL → Research → Scripts\n\n**Single Input - Complete Output**\n\nThis workflow combines both processes:\n1. Product research from URL\n2. UGC script generation\n\n**Input:**\n```json\n{\n  \"productUrl\": \"https://example.com/product\",\n  \"scriptCount\": 5,\n  \"scriptLength\": \"60s\",\n  \"selectedAngles\": \"all\"\n}\n```\n\n**Output:**\n- Complete document with research + scripts\n- Individual script objects\n- Downloadable file\n\n**Perfect for:**\n- End-to-end automation\n- Quick turnaround projects\n- Batch processing",
+        "height": 480,
+        "width": 340
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 680]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Capture All Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture All Inputs": {
+      "main": [
+        [
+          {
+            "node": "Fetch Product Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Product Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Product Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Product Research": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Script Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for Script Generation": {
+      "main": [
+        [
+          {
+            "node": "Create Script Loop Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Script Loop Items": {
+      "main": [
+        [
+          {
+            "node": "Generate UGC Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate UGC Script": {
+      "main": [
+        [
+          {
+            "node": "Format Each Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Each Script": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Everything",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Everything": {
+      "main": [
+        [
+          {
+            "node": "Create Final Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-12-20T12:00:00.000Z",
+  "versionId": "1"
+}

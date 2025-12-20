@@ -1,0 +1,36 @@
+# n8n specific
+*.env
+.env.local
+.env.*.local
+
+# API Keys and Secrets
+*secret*
+*key*
+credentials.json
+
+# Node modules (if extending workflows)
+node_modules/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Testing
+test-outputs/
+*.test.json
+
+# Personal notes
+notes.md
+scratch.md

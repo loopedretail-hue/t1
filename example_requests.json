@@ -1,0 +1,152 @@
+{
+  "examples": [
+    {
+      "name": "Master Workflow - Standard Request",
+      "endpoint": "/product-to-scripts",
+      "description": "Complete end-to-end: product research + script generation",
+      "request": {
+        "productUrl": "https://www.example.com/products/wireless-headphones",
+        "scriptCount": 5,
+        "scriptLength": "60s",
+        "selectedAngles": "all"
+      },
+      "expectedOutput": {
+        "finalDocument": "[Complete markdown document with research + scripts]",
+        "researchDocument": "[Detailed product research]",
+        "productUrl": "https://www.example.com/products/wireless-headphones",
+        "scriptCount": 5,
+        "scriptLength": "60s",
+        "scripts": [
+          {
+            "number": 1,
+            "content": "[Script 1 content...]"
+          },
+          {
+            "number": 2,
+            "content": "[Script 2 content...]"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Master Workflow - Quick 30s Scripts",
+      "endpoint": "/product-to-scripts",
+      "description": "Short-form scripts for quick attention-grabbing ads",
+      "request": {
+        "productUrl": "https://www.example.com/skincare/serum",
+        "scriptCount": 3,
+        "scriptLength": "30s",
+        "selectedAngles": "problem-solution, transformation"
+      }
+    },
+    {
+      "name": "Master Workflow - Long-form Storytelling",
+      "endpoint": "/product-to-scripts",
+      "description": "Detailed 120s scripts for in-depth product stories",
+      "request": {
+        "productUrl": "https://www.example.com/fitness/workout-program",
+        "scriptCount": 3,
+        "scriptLength": "120s",
+        "selectedAngles": "transformation, social-proof, lifestyle-aspiration"
+      }
+    },
+    {
+      "name": "Master Workflow - High Volume Testing",
+      "endpoint": "/product-to-scripts",
+      "description": "Generate many scripts for extensive A/B testing",
+      "request": {
+        "productUrl": "https://www.example.com/supplements/protein-powder",
+        "scriptCount": 10,
+        "scriptLength": "60s",
+        "selectedAngles": "all"
+      }
+    },
+    {
+      "name": "Research Only - Single Product",
+      "endpoint": "/product-research",
+      "description": "Generate research document without scripts",
+      "request": {
+        "productUrl": "https://www.example.com/electronics/smart-watch"
+      },
+      "expectedOutput": {
+        "researchDocument": "[Full research document]",
+        "productUrl": "https://www.example.com/electronics/smart-watch",
+        "createdAt": "2025-12-20T12:00:00.000Z"
+      }
+    },
+    {
+      "name": "Scripts Only - Using Existing Research",
+      "endpoint": "/generate-scripts",
+      "description": "Generate scripts from pre-existing research",
+      "request": {
+        "researchDocument": "# PRODUCT RESEARCH DOCUMENT\n\n## 1. PRODUCT OVERVIEW\n- Product Name: SuperGlow Vitamin C Serum\n- Brand: RadiantSkin\n...[full research document]...",
+        "scriptCount": 5,
+        "scriptLength": "60s",
+        "selectedAngles": "all"
+      }
+    },
+    {
+      "name": "Scripts Only - Specific Angles",
+      "endpoint": "/generate-scripts",
+      "description": "Focus on specific messaging angles",
+      "request": {
+        "researchDocument": "[Previously generated research document]",
+        "scriptCount": 4,
+        "scriptLength": "90s",
+        "selectedAngles": "problem-solution, social-proof"
+      }
+    }
+  ],
+  "curl_examples": [
+    {
+      "name": "Master Workflow - Bash",
+      "command": "curl -X POST https://your-n8n-instance.com/webhook/product-to-scripts \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"productUrl\": \"https://www.example.com/product\",\n    \"scriptCount\": 5,\n    \"scriptLength\": \"60s\",\n    \"selectedAngles\": \"all\"\n  }'"
+    },
+    {
+      "name": "Research Only - Bash",
+      "command": "curl -X POST https://your-n8n-instance.com/webhook/product-research \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"productUrl\": \"https://www.example.com/product\"\n  }'"
+    },
+    {
+      "name": "Master Workflow - JavaScript/Node.js",
+      "code": "const axios = require('axios');\n\nconst response = await axios.post(\n  'https://your-n8n-instance.com/webhook/product-to-scripts',\n  {\n    productUrl: 'https://www.example.com/product',\n    scriptCount: 5,\n    scriptLength: '60s',\n    selectedAngles: 'all'\n  },\n  {\n    headers: { 'Content-Type': 'application/json' }\n  }\n);\n\nconsole.log(response.data);"
+    },
+    {
+      "name": "Master Workflow - Python",
+      "code": "import requests\nimport json\n\nurl = 'https://your-n8n-instance.com/webhook/product-to-scripts'\nheaders = {'Content-Type': 'application/json'}\ndata = {\n    'productUrl': 'https://www.example.com/product',\n    'scriptCount': 5,\n    'scriptLength': '60s',\n    'selectedAngles': 'all'\n}\n\nresponse = requests.post(url, headers=headers, data=json.dumps(data))\nprint(response.json())"
+    }
+  ],
+  "common_configurations": {
+    "quick_test": {
+      "description": "Fast testing with minimal scripts",
+      "config": {
+        "scriptCount": 2,
+        "scriptLength": "30s",
+        "selectedAngles": "problem-solution"
+      }
+    },
+    "standard_campaign": {
+      "description": "Typical campaign setup",
+      "config": {
+        "scriptCount": 5,
+        "scriptLength": "60s",
+        "selectedAngles": "all"
+      }
+    },
+    "extensive_testing": {
+      "description": "Maximum variety for split testing",
+      "config": {
+        "scriptCount": 10,
+        "scriptLength": "60s",
+        "selectedAngles": "all"
+      }
+    },
+    "storytelling_focus": {
+      "description": "Longer, narrative-driven scripts",
+      "config": {
+        "scriptCount": 3,
+        "scriptLength": "120s",
+        "selectedAngles": "transformation, lifestyle-aspiration"
+      }
+    }
+  }
+}
