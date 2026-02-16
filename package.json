@@ -1,0 +1,28 @@
+{
+  "name": "ugc-video-generator",
+  "version": "1.0.0",
+  "description": "Remotion-powered video generator for UGC ad scripts",
+  "scripts": {
+    "studio": "remotion studio src/remotion/index.ts",
+    "render": "remotion render src/remotion/index.ts UgcAd out/video.mp4",
+    "render:still": "remotion still src/remotion/index.ts UgcThumbnail out/thumbnail.png",
+    "render:all": "node scripts/render-all.mjs",
+    "upgrade": "remotion upgrade",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.242",
+    "@remotion/player": "4.0.242",
+    "@remotion/transitions": "4.0.242",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.242",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config": "4.0.242",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "typescript": "5.6.3"
+  }
+}
