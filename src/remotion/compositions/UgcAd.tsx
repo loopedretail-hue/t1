@@ -10,8 +10,8 @@ import { TextReveal } from "../components/TextReveal";
 import { AccentBar } from "../components/AccentBar";
 import { FeatureCard } from "../components/FeatureCard";
 import { ProgressIndicator } from "../components/ProgressIndicator";
-import { SCRIPT_LENGTHS, TIMING } from "../lib/types";
-import { fadeIn, fadeOut, pulseScale } from "../lib/animations";
+import { TIMING } from "../lib/types";
+import { pulseScale } from "../lib/animations";
 
 export const ugcAdSchema = z.object({
   hook: z.string(),
@@ -38,15 +38,11 @@ export const UgcAd: React.FC<UgcAdProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
-  const config = SCRIPT_LENGTHS[scriptLength];
-
   // Calculate section timing based on total duration
   const totalFrames = durationInFrames;
   const hookEnd = TIMING.hookDuration;
   const problemEnd = hookEnd + TIMING.problemDuration;
   const solutionEnd = problemEnd + TIMING.solutionDuration;
-  const featuresEnd =
-    solutionEnd + features.length * TIMING.featureDuration;
   const ctaStart = totalFrames - TIMING.ctaDuration;
 
   return (

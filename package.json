@@ -2,27 +2,31 @@
   "name": "ugc-video-generator",
   "version": "1.0.0",
   "description": "Remotion-powered video generator for UGC ad scripts",
+  "private": true,
   "scripts": {
-    "studio": "remotion studio src/remotion/index.ts",
+    "dev": "remotion studio",
+    "build": "remotion bundle",
     "render": "remotion render src/remotion/index.ts UgcAd out/video.mp4",
     "render:still": "remotion still src/remotion/index.ts UgcThumbnail out/thumbnail.png",
     "render:all": "node scripts/render-all.mjs",
     "upgrade": "remotion upgrade",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint src && tsc"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.242",
-    "@remotion/player": "4.0.242",
-    "@remotion/transitions": "4.0.242",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "4.0.242",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/player": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "^4.0.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@remotion/eslint-config": "4.0.242",
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
-    "typescript": "5.6.3"
+    "@remotion/eslint-config-flat": "^4.0.0",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.6.0",
+    "typescript": "5.9.3"
   }
 }
